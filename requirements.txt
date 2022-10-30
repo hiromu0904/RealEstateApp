@@ -1,0 +1,7 @@
+beautifulsoup4
+pandas
+streamlit
+gspread
+google
+gspread_dataframe
+retry
