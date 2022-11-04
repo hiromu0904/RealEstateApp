@@ -18,7 +18,7 @@ def get_worksheet():
     )
     gc = gspread.authorize(credentials)
 
-    SP_SHEET_KEY = '1eQCdcUFdKITA3G3fU7mcWAhXyAt8zVhoJ0wpary6voE'
+    SP_SHEET_KEY = '1co7OezxBYraCGdCENmFvH41EG_HvspnUAOOQAGqkcc8'
     sh = gc.open_by_key(SP_SHEET_KEY)
 
 
@@ -46,7 +46,7 @@ def main():
         return soup
 
     all_data = []
-    for page in range(1, 3+1):
+    for page in range(1, num_pages+1):
         # define url 
         url = base_url.format(page)
         # get html
@@ -55,44 +55,45 @@ def main():
         items = soup.findAll("div", {"class": "cassetteitem"})
         # process each item
         for item in items:
-            stations = item.findAll("div", {"class": "cassetteitem_detail-text"})
-            # process each station 
-            for station in stations:
-                # define variable 
-                base_data = {}
-    
-                # collect base information    
-                base_data["名称"] = item.find("div", {"class": "cassetteitem_content-title"}).getText().strip()
-                base_data["カテゴリー"] = item.find("div", {"class": "cassetteitem_content-label"}).getText().strip()
-                base_data["アドレス"] = item.find("li", {"class": "cassetteitem_detail-col1"}).getText().strip()
-                base_data["アクセス"] = station.getText().strip()
-                base_data["築年数"] = item.find("li", {"class": "cassetteitem_detail-col3"}).findAll("div")[0].getText().strip()
-                base_data["構造"] = item.find("li", {"class": "cassetteitem_detail-col3"}).findAll("div")[1].getText().strip()
-                
-                # process for each room
-                tbodys = item.find("table", {"class": "cassetteitem_other"}).findAll("tbody")
-                
-                for tbody in tbodys:
-                    data = base_data.copy()
-    
-                    data["階数"] = tbody.findAll("td")[2].getText().strip()
-    
-                    data["家賃"] = tbody.findAll("td")[3].findAll("li")[0].getText().strip()
-                    data["管理費"] = tbody.findAll("td")[3].findAll("li")[1].getText().strip()
-    
-                    data["敷金"] = tbody.findAll("td")[4].findAll("li")[0].getText().strip()
-                    data["礼金"] = tbody.findAll("td")[4].findAll("li")[1].getText().strip()
-    
-                    data["間取り"] = tbody.findAll("td")[5].findAll("li")[0].getText().strip()
-                    data["面積"] = tbody.findAll("td")[5].findAll("li")[1].getText().strip()
-                    
-                    data["URL"] = "https://suumo.jp" + tbody.findAll("td")[8].find("a").get("href")
-                    
-                    all_data.append(data)    
-    
-    # convert to dataframe
-    df = pd.DataFrame(all_data)
+            base_data = {}
+            # 建物の情報を取得    
+            base_data["名称"] = item.find("div", {"class": "cassetteitem_content-title"}).getText().strip()
+            base_data["カテゴリー"] = item.find("div", {"class": "cassetteitem_content-label"}).getText().strip()
+            base_data["アドレス"] = item.find("li", {"class": "cassetteitem_detail-col1"}).getText().strip()
+            base_data["最寄り駅"] = item.find("div", {"class": "cassetteitem_detail-text"}).getText().strip().split('歩')[0]
+            base_data["徒歩"] = item.find("div", {"class": "cassetteitem_detail-text"}).getText().strip().split('歩')[1].split('分')[0]
+            base_data["築年数"] = item.find("li", {"class": "cassetteitem_detail-col3"}).findAll("div")[0].getText().strip().split('築')[1].split('年')[0]
+            base_data["構造"] = item.find("li", {"class": "cassetteitem_detail-col3"}).findAll("div")[1].getText().strip()
 
+            # 各部屋の情報を取得
+            tbodys = item.find("table", {"class": "cassetteitem_other"}).findAll("tbody")
+
+            for tbody in tbodys:
+                data = base_data.copy()
+
+                data["階数"] = tbody.findAll("td")[2].getText().strip()
+
+                data["家賃"] = int(float(tbody.findAll("td")[3].findAll("li")[0].getText().strip().split('万')[0])*10000)
+                data["管理費"] = tbody.findAll("td")[3].findAll("li")[1].getText().strip().split('円')[0]
+                if tbody.findAll("td")[4].findAll("li")[0].getText().strip()== '-':
+                    data["敷金"] = tbody.findAll("td")[4].findAll("li")[0].getText().strip()
+                else:
+                    data["敷金"] = int(float(tbody.findAll("td")[4].findAll("li")[0].getText().strip().split('万')[0])*10000)
+                if tbody.findAll("td")[4].findAll("li")[1].getText().strip()== '-':
+                    data["礼金"] = tbody.findAll("td")[4].findAll("li")[1].getText().strip()
+                else:
+                    data["礼金"] = int(float(tbody.findAll("td")[4].findAll("li")[1].getText().strip().strip().split('万')[0])*10000)
+
+                data["間取り"] = tbody.findAll("td")[5].findAll("li")[0].getText().strip()
+                data["面積"] = tbody.findAll("td")[5].findAll("li")[1].getText().strip().split('m')[0]
+
+                data["URL"] = "https://suumo.jp" + tbody.findAll("td")[8].find("a").get("href")
+
+                all_data.append(data)    
+    
+    # データフレーム化
+    df = pd.DataFrame(all_data)
+    
     set_with_dataframe(worksheet, df, row=1, col=1)
 
 if __name__ == '__main__':
