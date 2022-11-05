@@ -47,7 +47,7 @@ def main():
 
     all_data = []
     for page in range(1, num_pages+1):
-        # define url 
+        # urlを定義 
         url = base_url.format(page)
         # get html
         soup = get_html(url)
@@ -61,8 +61,11 @@ def main():
             base_data["カテゴリー"] = item.find("div", {"class": "cassetteitem_content-label"}).getText().strip()
             base_data["アドレス"] = item.find("li", {"class": "cassetteitem_detail-col1"}).getText().strip()
             base_data["最寄り駅"] = item.find("div", {"class": "cassetteitem_detail-text"}).getText().strip().split('歩')[0]
-            base_data["徒歩"] = item.find("div", {"class": "cassetteitem_detail-text"}).getText().strip().split('歩')[1].split('分')[0]
-            base_data["築年数"] = item.find("li", {"class": "cassetteitem_detail-col3"}).findAll("div")[0].getText().strip().split('築')[1].split('年')[0]
+            base_data["徒歩"] = int(item.find("div", {"class": "cassetteitem_detail-text"}).getText().strip().split('歩')[1].split('分')[0])
+            if item.find("li", {"class": "cassetteitem_detail-col3"}).findAll("div")[0].getText().strip() == '新築':
+                base_data["築年数"] = 0
+            else:
+                base_data["築年数"] = int(item.find("li", {"class": "cassetteitem_detail-col3"}).findAll("div")[0].getText().strip().split('築')[1].split('年')[0])
             base_data["構造"] = item.find("li", {"class": "cassetteitem_detail-col3"}).findAll("div")[1].getText().strip()
 
             # 各部屋の情報を取得
@@ -73,24 +76,27 @@ def main():
 
                 data["階数"] = tbody.findAll("td")[2].getText().strip()
 
-                data["家賃"] = int(float(tbody.findAll("td")[3].findAll("li")[0].getText().strip().split('万')[0])*10000)
-                data["管理費"] = tbody.findAll("td")[3].findAll("li")[1].getText().strip().split('円')[0]
+                data["家賃"] = float(tbody.findAll("td")[3].findAll("li")[0].getText().strip().split('万')[0])
+                if tbody.findAll("td")[3].findAll("li")[1].getText().strip()== '-':
+                    data["管理費"] = 0
+                else:
+                    data["管理費"] = int(tbody.findAll("td")[3].findAll("li")[1].getText().strip().split('円')[0])
                 if tbody.findAll("td")[4].findAll("li")[0].getText().strip()== '-':
-                    data["敷金"] = tbody.findAll("td")[4].findAll("li")[0].getText().strip()
+                    data["敷金"] = 0
                 else:
-                    data["敷金"] = int(float(tbody.findAll("td")[4].findAll("li")[0].getText().strip().split('万')[0])*10000)
+                    data["敷金"] = float(tbody.findAll("td")[4].findAll("li")[0].getText().strip().split('万')[0])
                 if tbody.findAll("td")[4].findAll("li")[1].getText().strip()== '-':
-                    data["礼金"] = tbody.findAll("td")[4].findAll("li")[1].getText().strip()
+                    data["礼金"] = 0
                 else:
-                    data["礼金"] = int(float(tbody.findAll("td")[4].findAll("li")[1].getText().strip().strip().split('万')[0])*10000)
+                    data["礼金"] = float(tbody.findAll("td")[4].findAll("li")[1].getText().strip().strip().split('万')[0])
 
                 data["間取り"] = tbody.findAll("td")[5].findAll("li")[0].getText().strip()
-                data["面積"] = tbody.findAll("td")[5].findAll("li")[1].getText().strip().split('m')[0]
+                data["面積"] = float(tbody.findAll("td")[5].findAll("li")[1].getText().strip().split('m')[0])
 
                 data["URL"] = "https://suumo.jp" + tbody.findAll("td")[8].find("a").get("href")
 
                 all_data.append(data)    
-    
+ 
     # データフレーム化
     df = pd.DataFrame(all_data)
     
