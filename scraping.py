@@ -46,8 +46,8 @@ def main():
         return soup
 
     all_data = []
-    for page in range(1, num_pages+1):
-        # urlを定義 
+    for page in range(1, 2):
+        # url 
         url = base_url.format(page)
         # get html
         soup = get_html(url)
